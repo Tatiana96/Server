@@ -55,66 +55,66 @@ public class EntityTable {
 
         List<TableField> rowDataList;
 
-        for (int i=0; i < sizeOfDetectedRows; i++) { // loop for objects in list
+            for (int i=0; i < sizeOfDetectedRows; i++) { // loop for objects in list
 
-            Object tmpObject = detectedRows.get(i); // object of class, that user chose before
-            Field[] fields = tmpObject.getClass().getDeclaredFields(); // fields of this class
+                Object tmpObject = detectedRows.get(i); // object of class, that user chose before
+                Field[] fields = tmpObject.getClass().getDeclaredFields(); // fields of this class
 
-            rowDataList = new ArrayList<TableField>();
+                rowDataList = new ArrayList<TableField>();
 
-            for (Field field : fields) { // loop for fields in object
-                if (k < amountOfColumns) { // check of amount of fields
+                for (Field field : fields) { // loop for fields in object
+                    if (k < amountOfColumns) { // check of amount of fields
 
-                    field.setAccessible(true); // this part allows to get access to private fields
-                    valueOfField = field.get(tmpObject); // get value of field in object
+                        field.setAccessible(true); // this part allows to get access to private fields
+                        valueOfField = field.get(tmpObject); // get value of field in object
 
-                    if (this.name.equals("Курс")) {
+                        if (this.name.equals("Курс")) {
 
-                        if (field.getType().getName().contains("java.util.Set"))
-                            setUtilSetTypeField(field, detectedForeignKeys);
+                            if (field.getType().getName().contains("java.util.Set"))
+                                setUtilSetTypeField(field, detectedForeignKeys);
 
-                    } else {
-
-                        if (valueOfField != null) {
-                            strValue = valueOfField.toString();
-
-                            if (field.getName().equals("id")) {
-                                rowDataList.add(new TableField(i, strValue, true, false, -1, null, null, null, null));
-                            } else {
-
-                                if (!strValue.contains("server.entity.")) {
-                                    if (strValue.equals("")) {
-                                        rowDataList.add(new TableField(i, "/* не заполнено */", false, false, -1, null, null, null, null));
-                                    } else {
-                                        rowDataList.add(new TableField(i, strValue, false, false, -1, null, null, null, null)); // add value of field in list for row
-                                    }
-                                } else {
-                                    setForeignKeyField(strValue, valueOfField, rowDataList, detectedForeignKeys, i, k);
-                                }
-                            }
                         } else {
-                            if (valueOfField == null && field.getType().getName().contains("server.entity.")) {
-                                String strType = field.getType().getName();
-                                strType = strType.substring(strType.lastIndexOf('.') + 1, strType.length());
-                                rowDataList.add(
-                                        new TableField(
-                                                i, "/* не заполнено */", false, true,
-                                                -1, "/* не заполнено */",
-                                                strType, detectedForeignKeys.get(strType),
-                                                valueOfField)
-                                );
-                                this.foreignKeyFieldsNumbers.add(k);
+
+                            if (valueOfField != null) {
+                                strValue = valueOfField.toString();
+
+                                if (field.getName().equals("id")) {
+                                    rowDataList.add(new TableField(i, strValue, true, false, -1, null, null, null, null));
+                                } else {
+
+                                    if (!strValue.contains("server.entity.")) {
+                                        if (strValue.equals("")) {
+                                            rowDataList.add(new TableField(i, "/* не заполнено */", false, false, -1, null, null, null, null));
+                                        } else {
+                                            rowDataList.add(new TableField(i, strValue, false, false, -1, null, null, null, null)); // add value of field in list for row
+                                        }
+                                    } else {
+                                        setForeignKeyField(strValue, valueOfField, rowDataList, detectedForeignKeys, i, k);
+                                    }
+                                }
                             } else {
-                                rowDataList.add(new TableField(i, "/* не заполнено */", false, false, -1, null, null, null, null)); // add value of field in list for row
+                                if (valueOfField == null && field.getType().getName().contains("server.entity.")) {
+                                    String strType = field.getType().getName();
+                                    strType = strType.substring(strType.lastIndexOf('.') + 1, strType.length());
+                                    rowDataList.add(
+                                            new TableField(
+                                                    i, "/* не заполнено */", false, true,
+                                                    -1, "/* не заполнено */",
+                                                    strType, detectedForeignKeys.get(strType),
+                                                    valueOfField)
+                                    );
+                                    this.foreignKeyFieldsNumbers.add(k);
+                                } else {
+                                    rowDataList.add(new TableField(i, "/* не заполнено */", false, false, -1, null, null, null, null)); // add value of field in list for row
+                                }
                             }
                         }
                     }
+                    k++;
                 }
-                k++;
+                this.rows.put(i, rowDataList); // add rowDataList to map of table
+                k = 0;
             }
-            this.rows.put(i, rowDataList); // add rowDataList to map of table
-            k = 0;
-        }
     }
 
     void setUtilSetTypeField(Field field, Map<String, List> detectedForeignKeys) {
@@ -172,15 +172,19 @@ public class EntityTable {
                 field.setAccessible(true); // this part allows to get access to private fields
 
                 if (field.getName().toString().equals("title")) {
-                    strValue += field.get(tmpObject).toString() + " ";
-                    amountOfWords ++;
+                    if (field.get(tmpObject) != null) {
+                        strValue += field.get(tmpObject).toString() + " ";
+                        amountOfWords++;
+                    }
                 } else {
                     if (field.getType().getName().equals("java.lang.String")) {
-                        amountOfWords ++;
-                        if (amountOfWords != 2) {
-                            strValue += field.get(tmpObject).toString() + ", ";
-                        } else {
-                            strValue += field.get(tmpObject).toString();
+                        if (field.get(tmpObject) != null) {
+                            amountOfWords++;
+                            if (amountOfWords != 2) {
+                                strValue += field.get(tmpObject).toString() + ", ";
+                            } else {
+                                strValue += field.get(tmpObject).toString();
+                            }
                         }
                     }
                 }
@@ -266,15 +270,19 @@ public class EntityTable {
                 if (!tableField.isPrimaryKey) {
 
                     if (tableField.isForeignKey) {
-                        newIdOfForeignKey = Integer.parseInt(updatedFieldsList.get(k));
+                        if (updatedFieldsList.get(k).contains("/* не заполнено */") || updatedFieldsList.get(k).equals("")) {
+                            field.set(objectForUpdate, null);
+                        } else {
+                            newIdOfForeignKey = Integer.parseInt(updatedFieldsList.get(k));
 
-                        if (tableField.foreignKey.id != newIdOfForeignKey) { // if something was changed
-                            ForeignKey newForeignKey =
-                                    getForeignKeyObjectById(tableField.variantsList, newIdOfForeignKey);
-                            field.set(objectForUpdate, newForeignKey.tmpObject);
+                            if (tableField.foreignKey.id != newIdOfForeignKey) { // if something was changed
+                                ForeignKey newForeignKey =
+                                        getForeignKeyObjectById(tableField.variantsList, newIdOfForeignKey);
+                                field.set(objectForUpdate, newForeignKey.tmpObject);
 
-                            tableField.value = getValueOfForeignKey(newForeignKey.tmpObject);
-                            tableField.foreignKey = newForeignKey;
+                                tableField.value = getValueOfForeignKey(newForeignKey.tmpObject);
+                                tableField.foreignKey = newForeignKey;
+                            }
                         }
                     } else {
                         if ( ! tableField.value.equals( updatedFieldsList.get(k) ) ) { // if something was changed
@@ -324,18 +332,23 @@ public class EntityTable {
                 if (!tableField.isPrimaryKey) {
 
                     if (field.getType().getName().contains("server.entity.")) { // foreign key check
-                        newIdOfForeignKey = Integer.parseInt(updatedFieldsList.get(k));
 
-                        tableField.isForeignKey = true;
-                        tableField.variantsList = this.rows.get(0).get(k).variantsList;
-                        ForeignKey newForeignKey =
-                                getForeignKeyObjectById(tableField.variantsList, newIdOfForeignKey);
-                        field.set(objectForUpdate, newForeignKey.tmpObject);
+                        if (updatedFieldsList.get(k).contains("/* не заполнено */") || updatedFieldsList.get(k).equals("")) {
+                            field.set(objectForUpdate, null);
+                        } else {
+                            newIdOfForeignKey = Integer.parseInt(updatedFieldsList.get(k));
 
-                        tableField.value = getValueOfForeignKey(newForeignKey.tmpObject);
-                        tableField.foreignKey = newForeignKey;
+                            tableField.isForeignKey = true;
+                            tableField.variantsList = this.rows.get(0).get(k).variantsList;
+                            ForeignKey newForeignKey =
+                                    getForeignKeyObjectById(tableField.variantsList, newIdOfForeignKey);
+                            field.set(objectForUpdate, newForeignKey.tmpObject);
+
+                            tableField.value = getValueOfForeignKey(newForeignKey.tmpObject);
+                            tableField.foreignKey = newForeignKey;
+                        }
                     } else {
-                        if (updatedFieldsList.get(k).equals("/* не заполнено */")) {
+                        if (updatedFieldsList.get(k).equals("/* не заполнено */") || updatedFieldsList.get(k).equals("")) {
                             field.set(objectForUpdate, null);
                         } else {
                             if (field.getType().getName().equals("int")) {
